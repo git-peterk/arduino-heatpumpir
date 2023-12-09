@@ -119,6 +119,10 @@ class GreeYANHeatpumpIR : public GreeHeatpumpIR
 class GreeiFeelHeatpumpIR : public GreeHeatpumpIR
 {
   public:
+    void send(IRSender& IR, uint8_t powerModeCmd, uint8_t operatingModeCmd, uint8_t fanSpeedCmd, uint8_t temperatureCmd, uint8_t swingVCmd, uint8_t swingHCmd, bool turboMode)
+    {
+      GreeHeatpumpIR::send(IR, powerModeCmd, operatingModeCmd, fanSpeedCmd, temperatureCmd, swingVCmd, swingHCmd, turboMode, true);
+    }
     void send(IRSender& IR, uint8_t powerModeCmd, uint8_t operatingModeCmd, uint8_t fanSpeedCmd, uint8_t temperatureCmd, uint8_t swingVCmd, uint8_t swingHCmd, bool turboMode, bool iFeelMode)
     {
       GreeHeatpumpIR::send(IR, powerModeCmd, operatingModeCmd, fanSpeedCmd, temperatureCmd, swingVCmd, swingHCmd, turboMode, iFeelMode);
