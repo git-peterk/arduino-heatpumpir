@@ -26,7 +26,7 @@ GreeYANHeatpumpIR::GreeYANHeatpumpIR() : GreeHeatpumpIR()
 }
 
 // Support for YAA1FB, FAA1FB1, YB1F2 remotes
-GreeYAAHeatpumpIR::GreeYAAHeatpumpIR() : GreeHeatpumpIR()
+GreeYAAHeatpumpIR::GreeYAAHeatpumpIR() : GreeiFeelHeatpumpIR()
 {
   static const char model[] PROGMEM = "greeyaa";
   static const char info[]  PROGMEM = "{\"mdl\":\"greeyaa\",\"dn\":\"Gree YAA\",\"mT\":16,\"xT\":30,\"fs\":3}";
@@ -270,9 +270,9 @@ void GreeHeatpumpIR::sendGree(IRSender& IR, uint8_t powerMode, uint8_t operating
   }
   if (greeModel == GREE_YAA || greeModel == GREE_YAC)
   {
-    GreeTemplate[2] = GREE_LIGHT_BIT; // bits 0..3 always 0000, bits 4..7 TURBO,LIGHT,HEALTH,X-FAN
+    GreeTemplate[2] = GREE_LIGHT_BIT | GREE_HEALTH_BIT; // bits 0..3 always 0000, bits 4..7 TURBO,LIGHT,HEALTH,X-FAN
     GreeTemplate[3] = 0x50; // bits 4..7 always 0101
-    GreeTemplate[6] = 0x20; // YAA1FB, FAA1FB1, YB1F2 bits 4..7 always 0010
+    GreeTemplate[5] = 0x20; // YAA1FB, FAA1FB1, YB1F2 bits 4..7 always 0010
 
     if (turboMode)
     {
@@ -281,10 +281,16 @@ void GreeHeatpumpIR::sendGree(IRSender& IR, uint8_t powerMode, uint8_t operating
     if (swingV == GREE_VDIR_SWING)
     {
       GreeTemplate[0] |= GREE_VSWING; // Enable swing by setting bit 6
+      GreeTemplate[4] &= 0xF0;        // Lower 4 bits set spread
+      GreeTemplate[4] |= 0x01;        // Spread set to ALL
     }
     else if (swingV != GREE_VDIR_AUTO)
     {
-      GreeTemplate[5] = swingV;
+      GreeTemplate[4] = swingV;
+    }
+    if (iFeelMode)
+    {
+      GreeTemplate[5] |= GREE_YAA_IFEEL;
     }
   }
 
@@ -303,10 +309,10 @@ void GreeHeatpumpIR::sendGree(IRSender& IR, uint8_t powerMode, uint8_t operating
      (GreeTemplate[1] & 0x0F) +
      (GreeTemplate[2] & 0x0F) +
      (GreeTemplate[3] & 0x0F) +
+     ((GreeTemplate[4] & 0xF0) >> 4) +
      ((GreeTemplate[5] & 0xF0) >> 4) +
      ((GreeTemplate[6] & 0xF0) >> 4) +
-     ((GreeTemplate[7] & 0xF0) >> 4) +
-      0x0A) & 0x0F) << 4) | (GreeTemplate[7] & 0x0F);
+      0x0A) & 0x0F) << 4);
   }
 
   // 38 kHz PWM frequency
@@ -346,8 +352,25 @@ void GreeHeatpumpIR::sendGree(IRSender& IR, uint8_t powerMode, uint8_t operating
 void GreeiFeelHeatpumpIR::send(IRSender& IR, uint8_t currentTemperature)
 {
   uint8_t GreeTemplate[] = { 0x00, 0x00 };
+  int BitMark;
 
-  GreeTemplate[0] = currentTemperature;
+  if (greeModel == GREE_YAA) {
+    BitMark = GREE_AIRCON1_BIT_MARK;
+
+    if (currentTemperature < 16) {
+      currentTemperature = 16;
+    } else if (currentTemperature > 31) {
+      currentTemperature = 31;
+    } else {
+      currentTemperature -= 16;
+    }
+    GreeTemplate[0] = currentTemperature << 4;
+    GreeTemplate[0] |= 0x08; // Bit 3 is always set
+  } else {
+    BitMark = GREE_YAC_BIT_MARK;
+
+    GreeTemplate[0] = currentTemperature;
+  }
   GreeTemplate[1] = 0xA5;
 
   // 38 kHz PWM frequency
@@ -358,10 +381,10 @@ void GreeiFeelHeatpumpIR::send(IRSender& IR, uint8_t currentTemperature)
   IR.space(GREE_YAC_HDR_SPACE);
 
   // send payload
-  IR.sendIRbyte(GreeTemplate[0], GREE_YAC_BIT_MARK, GREE_AIRCON1_ZERO_SPACE, GREE_AIRCON1_ONE_SPACE);
-  IR.sendIRbyte(GreeTemplate[1], GREE_YAC_BIT_MARK, GREE_AIRCON1_ZERO_SPACE, GREE_AIRCON1_ONE_SPACE);
+  IR.sendIRbyte(GreeTemplate[0], BitMark, GREE_AIRCON1_ZERO_SPACE, GREE_AIRCON1_ONE_SPACE);
+  IR.sendIRbyte(GreeTemplate[1], BitMark, GREE_AIRCON1_ZERO_SPACE, GREE_AIRCON1_ONE_SPACE);
 
   // End mark
-  IR.mark(GREE_YAC_BIT_MARK);
+  IR.mark(BitMark);
   IR.space(0);
 }

@@ -70,6 +70,8 @@
 #define GREE_LIGHT_BIT  (1 << 5)
 #define GREE_HEALTH_BIT (1 << 6)
 #define GREE_XFAN_BIT   (1 << 7) // aka BLOW on some remotes
+// byte 6
+#define GREE_YAA_IFEEL  (1 << 2)
 
 
 
@@ -114,18 +116,6 @@ class GreeYANHeatpumpIR : public GreeHeatpumpIR
     }
 };
 
-class GreeYAAHeatpumpIR : public GreeHeatpumpIR
-{
-  public:
-    GreeYAAHeatpumpIR();
-
-  public:
-    void send(IRSender& IR, uint8_t powerModeCmd, uint8_t operatingModeCmd, uint8_t fanSpeedCmd, uint8_t temperatureCmd, uint8_t swingVCmd, uint8_t swingHCmd, bool turboMode)
-    {
-      GreeHeatpumpIR::send(IR, powerModeCmd, operatingModeCmd, fanSpeedCmd, temperatureCmd, swingVCmd, swingHCmd, turboMode);
-    }
-};
-
 class GreeiFeelHeatpumpIR : public GreeHeatpumpIR
 {
   public:
@@ -134,6 +124,12 @@ class GreeiFeelHeatpumpIR : public GreeHeatpumpIR
       GreeHeatpumpIR::send(IR, powerModeCmd, operatingModeCmd, fanSpeedCmd, temperatureCmd, swingVCmd, swingHCmd, turboMode, iFeelMode);
     }
     void send(IRSender& IR, uint8_t currentTemperature);
+};
+
+class GreeYAAHeatpumpIR : public GreeiFeelHeatpumpIR
+{
+  public:
+    GreeYAAHeatpumpIR();
 };
 
 class GreeYACHeatpumpIR : public GreeiFeelHeatpumpIR
